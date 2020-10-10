@@ -33,6 +33,8 @@ int ghHandle[num_color + 2];
 
 int pileBall[num_width][num_height]; // 積まれている玉の色
 
+int score = 0;
+
 struct Ball {
     int num_side;
     int num_ver;
@@ -49,9 +51,11 @@ struct mBall {
 // unionfind
 struct UnionFind {
     vector<int> par; // par[i]:iの親の番号　(例) par[3] = 2 : 3の親が2
+    vector<int> siz;
 
-    UnionFind(int N) : par(N) { //最初は全てが根であるとして初期化
+    UnionFind(int N) : par(N), siz(N) { //最初は全てが根であるとして初期化
         for (int i = 0; i < N; i++) par[i] = i;
+        for (int i = 0; i < N; i++) siz[i] = 1;
     }
 
     int root(int x) { // データxが属する木の根を再帰で得る：root(x) = {xの木の根}
@@ -63,6 +67,8 @@ struct UnionFind {
         int rx = root(x); //xの根をrx
         int ry = root(y); //yの根をry
         if (rx == ry) return; //xとyの根が同じ(=同じ木にある)時はそのまま
+        if (siz[ry] < siz[rx]) swap(rx, ry);
+        siz[ry] += siz[rx];
         par[rx] = ry; //xとyの根が同じでない(=同じ木にない)時：xの根rxをyの根ryにつける
     }
 
@@ -70,6 +76,10 @@ struct UnionFind {
         int rx = root(x);
         int ry = root(y);
         return rx == ry;
+    }
+
+    int size(int x) {
+        return siz[root(x)];
     }
 };
 
@@ -146,68 +156,206 @@ void appearBalls() {
 }
 
 bool fallJudge() {
-    for (int i = 0; i < num_width; i++) {
-        for (int j = 0; j < num_height; j++) {
-            
-            if (j < num_height - 1) {
-                if (pileBall[i][j + 1] != none) return false;
+    for (int S = 0; S < num_width; S++) {
+        for (int V = 0; V < num_height - 1; V++) {
+            if (pileBall[S][V] == none) continue;
+
+            if (V < num_height - 1) {
+                if (pileBall[S][V + 1] != none) return true;
             }
-            if (i != num_width - 1 && j < num_height - 1) {
-                if (pileBall[i + 1][j + 1] == none) return false;
+            if (S != num_width - 1 && V < num_height - 1) {
+                if (pileBall[S + 1][V + 1] == none) return true;
             }
-            if (i != 0 && j < num_height - 1) {
-                if (pileBall[i - 1][j + 1] == none) return false;
+            if (S != 0 && V < num_height - 1) {
+                if (pileBall[S - 1][V + 1] == none) return true;
             }
         }
     }
 
-    return true;
+    return false;
 }
 
-bool unionJudge() {
+int num_ball(int S, int V) {
+    return S * num_height + V;
+}
 
-    // 描画
-    //drawBalls();
+void re_union(UnionFind *uf) {
+    
+    for (int S = 0; S < num_width; S++) {
+        for (int V = 0; V < num_height - 1; V++) {
+
+            if (pileBall[S][V] == none) continue;
+
+            if (S > 1) {
+                if (pileBall[S][V] == pileBall[S - 2][V]) {
+                    uf->unite(num_ball(S, V), num_ball(S - 2, V));
+                }
+            }
+            if (S > 0) {
+                if (V > 0) {
+                    if (pileBall[S][V] == pileBall[S - 1][V - 1]) {
+                        uf->unite(num_ball(S, V), num_ball(S - 1, V - 1));
+                    }
+                }
+                if (V < num_height - 1) {
+                    if (pileBall[S][V] == pileBall[S - 1][V + 1]) {
+                        uf->unite(num_ball(S, V), num_ball(S - 1, V + 1));
+                    }
+                }
+            }
+        }
+    }
+}
 
 
 
-    return true;
-    // 画面に描かれているものをすべて消す
-    //ClearDrawScreen();
+void fallBall() {
+
+    // change_location 使ってるけど、無理だから新しく書き直してね
+
+    for (int V = num_height - 2; V >= 0; V--) {
+        for (int S = 0; S < num_width; S++) {
+            if (pileBall[S][V] == none) continue;
+
+            ball.num_side = S;
+            ball.num_ver = V;
+            ball.color = pileBall[S][V];
+
+            if (V < num_height - 1) {
+
+                // 真下にある
+                if (pileBall[S][V + 1] != none) {
+                    int ran = rand() % 2;
+                    if (S == num_width - 1) change_location(left);
+                    else if (S == 0) change_location(right);
+                    else if (ran == 0) change_location(left);
+                    else if (ran == 1) change_location(right);
+                    continue;
+                }
+                
+                if (S > 0 && S < num_width - 1) {
+                    if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] == none && pileBall[S + 1][V + 1] == none) {
+                         // 下に何もない
+                        change_location(down);
+                    }
+                    else if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] != none && pileBall[S + 1][V + 1] == none) {
+                        // 左下にある
+                        change_location(low_right);
+                    }
+                    else if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] == none && pileBall[S + 1][V + 1] != none) {
+                        // 右下にある
+                        change_location(low_left);
+                    }
+                }
+                else if (S == 0) {
+                    if (pileBall[S + 1][V + 1] == none) {
+                        change_location(down);
+                    }
+                }
+                else if (S == num_width - 1) {
+                    if (pileBall[S - 1][V + 1] == none) {
+                        change_location(down);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void unionErase(UnionFind *uf) {
+    for (int S = 0; S < num_width; S++) {
+        for (int V = 0; V < num_height - 1; V++) {
+            if (uf->size(num_ball(S, V)) >= 6) {
+                pileBall[S][V] = none;
+                score++;
+            }
+        }
+    }
+}
+
+bool UnionJudge(UnionFind *uf) {
+    //int sc = 0;
+
+    for (int i = 0; i < num_width; i++) {
+        for (int j = 0; j < num_height - 1; j++) {
+            //score = max(score, uf->size(num_ball(i, j)));
+
+            if (uf->size(num_ball(i, j)) >= 6) return true;
+        }
+    }
+    return false;
 }
 
 // 6個以上の連結があるかどうかを判定し、連結が消えるまで玉の消去を繰り返す
 void eraseBall() {
 
-    bool stay = true;
+    bool not_stay_f = false;
+    bool not_stay_u = false;
+    bool not_stay = false;
 
     // 落下判定
-    stay = fallJudge();
+    not_stay_f = fallJudge();
+    not_stay |= not_stay_f;
 
     // 連結判定
-    stay = unionJudge();
+    UnionFind uf(num_width * num_height);
+    re_union(&uf);
+    not_stay_u = UnionJudge(&uf);
+    not_stay |= not_stay_u;
 
     // 上二つはOK
 
     // 変化が起こる場合は、変化前に描画！！、そのあと時間停止！！
     // ↑判定の時点では描画は不要！！
     // 時間停止は落下、消滅それぞれで必要か判断したうえで、執行
-    while (!stay) {
-
-        stay = true;
+    while (not_stay) {
+        // 描画
+        //drawBalls();
+        // 画面に描かれているものをすべて消す
+        //ClearDrawScreen();
+        not_stay = false;
 
         // 落下 change_locationを使用
+        if (not_stay_f) {
+            drawBalls();
+            //DrawFormatString(100, 100, GetColor(0, 252, 0), "1111");
 
+            fallBall();
 
+            WaitTimer(100);
+            ClearDrawScreen();
+        }
         // 消滅
+        if ((!not_stay_f) && not_stay_u) {
+            drawBalls();
+            //DrawFormatString(100, 100, GetColor(0, 252, 0), "1111");
 
+            UnionFind uf_(num_width * num_height);
+            re_union(&uf_);
+            unionErase(&uf_);
+
+            WaitTimer(100);
+            ClearDrawScreen();
+        }
 
         // まだ落ちるか→落ちたら頭へ
         //stay = fallJudge();
         //if (!stay) continue;
+        // 落下判定
+        not_stay_f = fallJudge();
+        not_stay |= not_stay_f;
 
         // まだ消えるか→消えたら頭へ
         //stay = unionJudge();
+        // 連結判定
+        UnionFind uf_re(num_width * num_height);
+        re_union(&uf_re);
+        not_stay_u = UnionJudge(&uf_re);
+        not_stay |= not_stay_u;
+
+        if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) {
+            break;
+        }
     }
 
     appearBalls();
@@ -224,7 +372,7 @@ void attackBall() {
 
     // 左右
     if (ball.num_side > 1) flag |= pileBall[ball.num_side - 2][ball.num_ver];
-    if (ball.num_side < 17) flag |= pileBall[ball.num_side + 2][ball.num_ver];
+    if (ball.num_side < num_width - 2) flag |= pileBall[ball.num_side + 2][ball.num_ver];
     
     if (flag) eraseBall();
 }
@@ -285,6 +433,9 @@ void update() {
 
     // 描画
     drawBalls();
+
+    // スコア表示
+    DrawFormatString(0, 0, GetColor(0, 255, 0), "%d", score);
 
     // 裏画面の内容を表画面に反映させる
     ScreenFlip();
