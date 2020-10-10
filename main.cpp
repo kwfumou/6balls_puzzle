@@ -146,18 +146,22 @@ void appearBalls() {
 }
 
 bool fallJudge() {
-
-    // •`‰æ
-    //drawBalls();
-
     for (int i = 0; i < num_width; i++) {
-        for (int j = 1; j < num_height; j++) {
-
+        for (int j = 0; j < num_height; j++) {
+            
+            if (j < num_height - 1) {
+                if (pileBall[i][j + 1] != none) return false;
+            }
+            if (i != num_width - 1 && j < num_height - 1) {
+                if (pileBall[i + 1][j + 1] == none) return false;
+            }
+            if (i != 0 && j < num_height - 1) {
+                if (pileBall[i - 1][j + 1] == none) return false;
+            }
         }
     }
 
-    // ‰æ–Ê‚É•`‚©‚ê‚Ä‚¢‚é‚à‚Ì‚ð‚·‚×‚ÄÁ‚·
-    //ClearDrawScreen();
+    return true;
 }
 
 bool unionJudge() {
@@ -167,7 +171,7 @@ bool unionJudge() {
 
 
 
-
+    return true;
     // ‰æ–Ê‚É•`‚©‚ê‚Ä‚¢‚é‚à‚Ì‚ð‚·‚×‚ÄÁ‚·
     //ClearDrawScreen();
 }
