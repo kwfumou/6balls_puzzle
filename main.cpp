@@ -19,7 +19,7 @@ const int num_height = 18;
 const int side_location[] = { 150, 165, 181, 196, 212, 227, 243, 258, 274, 289, 305, 320, 336, 351, 367, 382, 398, 413, 429 };
 const int vertical_location[] = { 8, 34, 60, 86, 112, 138, 164, 190, 216, 242, 268, 294, 320, 346, 372, 398, 424, 450 };
 
-const int num_color = 3;
+const int num_color = 5;
 const string color_pathes[] = {"gray.png", "red.png", "pink.png", "green.png", "orange.png", "cyan.png", "brown.png"};
 
 const int none = 0;
@@ -49,11 +49,68 @@ struct Ball {
 };
 Ball ball;
 
-struct mBall {
+struct tryBalls {
+    Ball oneBall[3];
+    int state; // 0が上向き、1が下向き
     int num_side;
     int num_ver;
-    int dir;
+
+    void put_ball() {
+
+        oneBall[0].num_side = num_side;
+        if (state == 0) {
+            oneBall[1].num_side = num_side - 1;
+            oneBall[2].num_side = num_side + 1;
+
+            oneBall[0].num_ver = num_ver - 1;
+            oneBall[1].num_ver = num_ver;
+            oneBall[2].num_ver = num_ver;
+        }
+        else {
+            oneBall[1].num_side = num_side + 1;
+            oneBall[2].num_side = num_side - 1;
+
+            oneBall[0].num_ver = num_ver;
+            oneBall[1].num_ver = num_ver - 1;
+            oneBall[2].num_ver = num_ver - 1;
+        }
+    }
+
+    void init_(int S, int V) {
+        state = 0;
+
+        num_side = S;
+        num_ver = V;
+
+        put_ball();
+    }
+
+    void roll(int dir) {
+        (state += 1) %= 2;
+
+        Ball zero = oneBall[0];
+        if (dir == right) {
+            oneBall[0] = oneBall[2];
+            oneBall[2] = oneBall[1];
+            oneBall[1] = zero;
+        }
+        else if (dir == left) {
+            oneBall[0] = oneBall[1];
+            oneBall[1] = oneBall[2];
+            oneBall[2] = zero;
+        }
+
+        if (state == 0) {
+            num_side = oneBall[0].num_side;
+            num_ver = oneBall[0].num_ver + 1;
+        }
+        else {
+            num_side = oneBall[0].num_side;
+            num_ver = oneBall[0].num_ver;
+        }
+    }
 };
+tryBalls tball;
 
 // unionfind
 struct UnionFind {
@@ -95,6 +152,13 @@ void resetScreen() {
     DrawFormatString(0, 0, GetColor(0, 255, 0), "%d", score);
 }
 
+void draw_3Balls() {
+
+    for (int i = 0; i < 3; i++) {
+        DrawGraph(side_location[tball.oneBall[i].num_side], vertical_location[tball.oneBall[i].num_ver], ghHandle[tball.oneBall[i].color], TRUE);
+    }
+}
+
 void drawBalls(bool sleep = false) {
     resetScreen();
     for (int i = 0; i < num_width; i++) {
@@ -103,9 +167,19 @@ void drawBalls(bool sleep = false) {
             const int pileColor = pileBall[i][j];
 
             if (pileColor == none) continue;
-            DrawGraph(side_location[i], vertical_location[j], ghHandle[pileColor], TRUE);
+            
+            // ボールが縦に連結したときは、接する場所が重ならないように調整する
+            if (j < num_height - 1 && pileBall[i][j + 1] != none) {
+                DrawGraph(side_location[i], vertical_location[j] - 4, ghHandle[pileColor], TRUE);
+            }
+            else {
+                DrawGraph(side_location[i], vertical_location[j], ghHandle[pileColor], TRUE);
+            }
         }
     }
+
+    if (!sleep) draw_3Balls();
+
     ScreenFlip();
     if (sleep && lastBall != pileBall) {
         WaitTimer(200);
@@ -114,8 +188,6 @@ void drawBalls(bool sleep = false) {
         memcpy(lastBall[i], pileBall[i], sizeof(pileBall[i]));
     }
 }
-
-
 
 bool change_location(int dir) {
     int memo_h = ball.num_side;
@@ -184,6 +256,88 @@ void appearBalls(int color = -1) {
     pileBall[ball.num_side][ball.num_ver] = ball.color;
 }
 
+bool change_3Balls(int dir) {
+
+    if (tball.num_side == 1) {
+        if (dir == left) dir = freeze;
+        if (dir == low_left) dir = down;
+    }
+    if (tball.num_side == num_width - 2) {
+        if (dir == right) dir = freeze;
+        if (dir == low_right) dir = down;
+    }
+
+    if (dir == down || dir == low_left || dir == low_right) tball.num_ver++;
+    if (dir == left || dir == low_left) tball.num_side--;
+    if (dir == right || dir == low_right) tball.num_side++;
+
+    // 下と二個右に球がある場合、右移動に変換
+    if (tball.num_ver < num_height - 1 && tball.num_side < num_width - 2) {
+        if (pileBall[tball.num_side + 2][tball.num_ver] && pileBall[tball.num_side + 1][tball.num_ver + 1]) {
+            tball.num_ver -= 1;
+            //dir = right;
+        }
+    }
+
+    // 下と二個左に球がある場合、左移動に変換
+    if (tball.num_ver < num_height - 1 && tball.num_side > 1) {
+        if (pileBall[tball.num_side - 2][tball.num_ver] && pileBall[tball.num_side - 1][tball.num_ver + 1]) {
+            tball.num_ver -= 1;
+            //dir = left;
+        }
+    }
+
+    tball.put_ball();
+
+    // 当たり判定
+    if (tball.state == 0) {
+        for (int S = -2; S <= 2; S++) {
+            for (int V = -1; V <= 1; V++) {
+                int sid = S + tball.num_side, ver = V + tball.num_ver;
+
+                if (sid < 0 || sid >= num_width) continue;
+                if (ver < 0 || ver >= num_height) continue;
+
+                if (pileBall[sid][ver] != none) return true;
+            }
+        }
+    }
+    else {
+        for (int S = -2; S <= 2; S++) {
+            for (int V = -1; V <= 1; V++) {
+                if (S == -2 && V == 1) continue;
+                if (S == 2 && V == 1) continue;
+
+                int sid = S + tball.num_side, ver = V + tball.num_ver;
+
+                if (sid < 0 || sid >= num_width) continue;
+                if (ver < 0 || ver >= num_height) continue;
+
+                if (pileBall[sid][ver] != none) return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+void appear_3Balls(int color_a = -1, int color_b = -1, int color_c = -1) {
+    if (color_a == -1) {
+        // structの書き換え
+        for (int i = 0; i < 3; i++) tball.oneBall[i].color = rand() % num_color + 2;
+    }
+    else {
+        tball.oneBall[0].color = color_a + 2;
+        tball.oneBall[1].color = color_b + 2;
+        tball.oneBall[2].color = color_c + 2;
+    }
+
+    tball.init_(num_width / 2, 1);
+
+    // 位置の指定
+    //for (int i = 0; i < 3; i++) pileBall[tball.ball[i].num_side][tball.ball[i].num_ver] = tball.ball[i].color;
+}
+
 bool fallJudge() {
     for (int S = 0; S < num_width; S++) {
         for (int V = 0; V < num_height - 1; V++) {
@@ -193,10 +347,22 @@ bool fallJudge() {
                 if (pileBall[S][V + 1] != none) return true;
             }
             if (S != num_width - 1 && V < num_height - 1) {
-                if (pileBall[S + 1][V + 1] == none) return true;
+
+                if (S < num_width - 2) {
+                    if (pileBall[S + 1][V + 1] == none && pileBall[S + 2][V] == none) return true;
+                }
+                else {
+                    if (pileBall[S + 1][V + 1] == none) return true;
+                }
             }
             if (S != 0 && V < num_height - 1) {
-                if (pileBall[S - 1][V + 1] == none) return true;
+
+                if (S > 1) {
+                    if (pileBall[S - 1][V + 1] == none && pileBall[S - 2][V] == none) return true;
+                }
+                else {
+                    if (pileBall[S - 1][V + 1] == none) return true;
+                }
             }
         }
     }
@@ -298,8 +464,12 @@ void fallBall() {
 
         }
         if(changed) drawBalls(true);
-
+        
         changed = 0;
+
+        if (V == num_width - 2) continue;
+
+        V++;
 
         // S,Vは移動してしまっているから、したのコードは意味がない。移動先を記録できれば、横ずれ可能
         for (int S = 0; S < num_width; S++) {
@@ -326,11 +496,13 @@ void fallBall() {
                     else {
                         changed += change_location(left);
                     }
-                    continue;
                 }
             }
         }
-        if (changed) drawBalls(true);
+
+        V--;
+
+        if (changed) drawBalls(true);   
     }
 }
 
@@ -426,7 +598,8 @@ void eraseBall() {
         }
     }
 
-    appearBalls();
+    //appearBalls();
+    appear_3Balls();
 }
 
 void attackBall() {
@@ -475,6 +648,42 @@ void moveBall() {
 
 }
 
+void move_3Balls() {
+    int dir_s = 0, dir_v = 0;
+    int dir;
+
+    // キー入力による変位
+    if (CheckHitKey(KEY_INPUT_LEFT) == 1) dir_s--;
+    if (CheckHitKey(KEY_INPUT_RIGHT) == 1) dir_s++;
+    if (CheckHitKey(KEY_INPUT_DOWN) == 1) dir_v++;
+
+    // 自然落下による変位
+    if (timeCount == 1) dir_v++;
+
+    // 速度ベクトル
+    if (dir_s == 0 && dir_v == 0) dir = freeze;
+    if (dir_s == 0 && dir_v > 0) dir = down;
+    if (dir_s < 0 && dir_v == 0) dir = left;
+    if (dir_s > 0 && dir_v == 0) dir = right;
+    if (dir_s < 0 && dir_v > 0) dir = low_left;
+    if (dir_s > 0 && dir_v > 0) dir = low_right;
+
+    // 回転
+    if (CheckHitKey(KEY_INPUT_F)) tball.roll(right);
+    if (CheckHitKey(KEY_INPUT_D)) tball.roll(left);
+
+    // 位置の移動（dirを実際に動いた向きに書き換える)
+    bool flag = change_3Balls(dir); // 当たり判定を返す
+
+    if (flag) {
+
+        // 3個のボールをpileBallに書き出す。
+        for (int i = 0; i < 3; i++) pileBall[tball.oneBall[i].num_side][tball.oneBall[i].num_ver] = tball.oneBall[i].color;
+
+        eraseBall();
+    }
+}
+
 void makeScreen() {
     SetDrawScreen(DX_SCREEN_BACK);
 }
@@ -485,17 +694,14 @@ void makeGrayBalls() {
     }
 }
 
-
-
-
-
 void update() {
     // 時間をカウント
     timeCount++;
     timeCount %= div_speed;
 
     // 画面に描かれているものをすべて消す
-    moveBall();
+    //moveBall();
+    move_3Balls();
 
     // 描画
     drawBalls();
@@ -548,8 +754,13 @@ void test() {
         pileBall[1 + i * 2][num_height - 4] = green;
     }
     
+    
+
     drawBalls(true);
-    appearBalls(0); // いづれは3個の玉が出現、今は一個
+    //appearBalls(0); // いづれは3個の玉が出現、今は一個
+
+    appear_3Balls();
+
     while (true) {
 
         update();
