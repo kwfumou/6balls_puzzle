@@ -1,6 +1,7 @@
 #include "DxLib.h"
 #include <vector>
 #include <math.h>
+#include <string>
 using namespace std;
 
 const int freeze = 0;
@@ -18,7 +19,8 @@ const int num_height = 18;
 const int side_location[] = { 150, 165, 181, 196, 212, 227, 243, 258, 274, 289, 305, 320, 336, 351, 367, 382, 398, 413, 429 };
 const int vertical_location[] = { 8, 34, 60, 86, 112, 138, 164, 190, 216, 242, 268, 294, 320, 346, 372, 398, 424, 450 };
 
-const int num_color = 6;
+const int num_color = 3;
+const string color_pathes[] = {"gray.png", "red.png", "pink.png", "green.png", "orange.png", "cyan.png", "brown.png"};
 
 const int none = 0;
 const int gray = 1;
@@ -32,8 +34,13 @@ const int brown = 7;
 int ghHandle[num_color + 2];
 
 int pileBall[num_width][num_height]; // 積まれている玉の色
-
+int lastBall[num_width][num_height] = { -1 }; // 最後の表示したボール
 int score = 0;
+
+void print(int message) {
+    DrawFormatString(0, 0, GetColor(255, 0, 255), "%d", message);
+    ScreenFlip();
+}
 
 struct Ball {
     int num_side;
@@ -83,7 +90,13 @@ struct UnionFind {
     }
 };
 
-void drawBalls() {
+void resetScreen() {
+    ClearDrawScreen();
+    DrawFormatString(0, 0, GetColor(0, 255, 0), "%d", score);
+}
+
+void drawBalls(bool sleep = false) {
+    resetScreen();
     for (int i = 0; i < num_width; i++) {
         for (int j = 0; j < num_height; j++) {
 
@@ -93,10 +106,20 @@ void drawBalls() {
             DrawGraph(side_location[i], vertical_location[j], ghHandle[pileColor], TRUE);
         }
     }
+    ScreenFlip();
+    if (sleep && lastBall != pileBall) {
+        WaitTimer(200);
+    }
+    for (int i = 0; i < num_width; i++) {
+        memcpy(lastBall[i], pileBall[i], sizeof(pileBall[i]));
+    }
 }
 
-void change_location(int dir) {
 
+
+bool change_location(int dir) {
+    int memo_h = ball.num_side;
+    int memo_w = ball.num_ver;
     pileBall[ball.num_side][ball.num_ver] = none;
     
 
@@ -142,12 +165,18 @@ void change_location(int dir) {
     }
 
     pileBall[ball.num_side][ball.num_ver] = ball.color;
+    return ((memo_h != ball.num_side) || (memo_w != ball.num_ver));
 }
 
-void appearBalls() {
-
-    // structの書き換え
-    ball.color = rand() % num_color + 2;
+void appearBalls(int color = -1) {
+    if (color == -1) {
+        // structの書き換え
+        ball.color = rand() % num_color + 2;
+    }
+    else {
+        ball.color = color + 2;
+    }
+   
     ball.num_side = num_width / 2;
     ball.num_ver = 0;
 
@@ -210,10 +239,10 @@ void re_union(UnionFind *uf) {
 
 
 void fallBall() {
-
     // change_location 使ってるけど、無理だから新しく書き直してね
-
+    
     for (int V = num_height - 2; V >= 0; V--) {
+        int changed = 0;
         for (int S = 0; S < num_width; S++) {
             if (pileBall[S][V] == none) continue;
 
@@ -225,40 +254,83 @@ void fallBall() {
 
                 // 真下にある
                 if (pileBall[S][V + 1] != none) {
-                    int ran = rand() % 2;
-                    if (S == num_width - 1) change_location(left);
-                    else if (S == 0) change_location(right);
-                    else if (ran == 0) change_location(left);
-                    else if (ran == 1) change_location(right);
+                    //int ran = rand() % 2;
+                    if (S == num_width - 1) {
+                        changed += change_location(left);
+                    }
+                    else if (S == 0) {
+                        changed += change_location(right);
+                    }
+                    else if (pileBall[S - 1][V] != none) {
+                        changed += change_location(right);
+                    }
+                    else {
+                        changed += change_location(left);
+                    }
                     continue;
                 }
                 
                 if (S > 0 && S < num_width - 1) {
                     if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] == none && pileBall[S + 1][V + 1] == none) {
                          // 下に何もない
-                        change_location(down);
+                        changed += change_location(down);
                     }
                     else if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] != none && pileBall[S + 1][V + 1] == none) {
                         // 左下にある
-                        change_location(low_right);
+                        changed += change_location(low_right);
                     }
                     else if (pileBall[S][V + 1] == none && pileBall[S - 1][V + 1] == none && pileBall[S + 1][V + 1] != none) {
                         // 右下にある
-                        change_location(low_left);
+                        changed += change_location(low_left);
                     }
                 }
                 else if (S == 0) {
                     if (pileBall[S + 1][V + 1] == none) {
-                        change_location(down);
+                        changed += change_location(down);
                     }
                 }
                 else if (S == num_width - 1) {
                     if (pileBall[S - 1][V + 1] == none) {
-                        change_location(down);
+                        changed += change_location(down);
                     }
                 }
             }
+
         }
+        if(changed) drawBalls(true);
+
+        changed = 0;
+
+        // S,Vは移動してしまっているから、したのコードは意味がない。移動先を記録できれば、横ずれ可能
+        for (int S = 0; S < num_width; S++) {
+            if (pileBall[S][V] == none) continue;
+
+            ball.num_side = S;
+            ball.num_ver = V;
+            ball.color = pileBall[S][V];
+
+            if (V < num_height - 1) {
+
+                // 真下にある
+                if (pileBall[S][V + 1] != none) {
+                    //int ran = rand() % 2;
+                    if (S == num_width - 1) {
+                        changed += change_location(left);
+                    }
+                    else if (S == 0) {
+                        changed += change_location(right);
+                    }
+                    else if (pileBall[S - 1][V] != none) {
+                        changed += change_location(right);
+                    }
+                    else {
+                        changed += change_location(left);
+                    }
+                    continue;
+                }
+            }
+        }
+        if (changed) drawBalls(true);
     }
 }
 
@@ -288,6 +360,7 @@ bool UnionJudge(UnionFind *uf) {
 
 // 6個以上の連結があるかどうかを判定し、連結が消えるまで玉の消去を繰り返す
 void eraseBall() {
+    drawBalls();
 
     bool not_stay_f = false;
     bool not_stay_u = false;
@@ -312,30 +385,25 @@ void eraseBall() {
         // 描画
         //drawBalls();
         // 画面に描かれているものをすべて消す
-        //ClearDrawScreen();
         not_stay = false;
 
         // 落下 change_locationを使用
         if (not_stay_f) {
-            drawBalls();
             //DrawFormatString(100, 100, GetColor(0, 252, 0), "1111");
 
             fallBall();
+            drawBalls(true);
 
-            WaitTimer(100);
-            ClearDrawScreen();
         }
         // 消滅
         if ((!not_stay_f) && not_stay_u) {
-            drawBalls();
             //DrawFormatString(100, 100, GetColor(0, 252, 0), "1111");
 
             UnionFind uf_(num_width * num_height);
             re_union(&uf_);
             unionErase(&uf_);
+            drawBalls(true);
 
-            WaitTimer(100);
-            ClearDrawScreen();
         }
 
         // まだ落ちるか→落ちたら頭へ
@@ -427,15 +495,12 @@ void update() {
     timeCount %= div_speed;
 
     // 画面に描かれているものをすべて消す
-    ClearDrawScreen();
-
     moveBall();
 
     // 描画
     drawBalls();
 
-    // スコア表示
-    DrawFormatString(0, 0, GetColor(0, 255, 0), "%d", score);
+    
 
     // 裏画面の内容を表画面に反映させる
     ScreenFlip();
@@ -445,13 +510,9 @@ void update() {
 }
 
 void openPng() {
-    ghHandle[1] = LoadGraph("gray.png");
-    ghHandle[2] = LoadGraph("red.png");
-    ghHandle[3] = LoadGraph("pink.png");
-    ghHandle[4] = LoadGraph("green.png");
-    ghHandle[5] = LoadGraph("orange.png");
-    ghHandle[6] = LoadGraph("cyan.png");
-    ghHandle[7] = LoadGraph("brown.png");
+    for (int i = 0; i <= num_color; i++) {
+        ghHandle[i+1] = LoadGraph(color_pathes[i].c_str());
+    }
 }
 
 void startGame() {
@@ -474,7 +535,32 @@ void startGame() {
 }
 
 void test() {
+    openPng();
+    makeScreen();
+    makeGrayBalls(); // そこに灰色の玉を敷き詰める
+    for (int i = 0; i < 5; i++) {
+        pileBall[1 + i * 2][num_height - 2] = red;
+    }
+    for (int i = 0; i < 3; i++) {
+        pileBall[i * 2][num_height - 3] = pink;
+    }
+    for (int i = 0; i < 2; i++) {
+        pileBall[1 + i * 2][num_height - 4] = green;
+    }
+    
+    drawBalls(true);
+    appearBalls(0); // いづれは3個の玉が出現、今は一個
+    while (true) {
 
+        update();
+
+        // Windows システムからくる情報を処理する
+        if (ProcessMessage() == -1) break;
+
+        // ＥＳＣキーが押されたらループから抜ける
+        if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) break;
+    }
+    
 }
 
 // WinMain関数
@@ -484,8 +570,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     // ＤＸライブラリ初期化処理
     if (DxLib_Init() == -1) return -1;
 
-    //test();
-    startGame();
+    test();
+    //startGame();
 
     // ＤＸライブラリ使用の終了処理
     DxLib_End();
