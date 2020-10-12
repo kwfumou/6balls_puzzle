@@ -19,7 +19,7 @@ const int num_height = 18;
 const int side_location[] = { 150, 165, 181, 196, 212, 227, 243, 258, 274, 289, 305, 320, 336, 351, 367, 382, 398, 413, 429 };
 const int vertical_location[] = { 8, 34, 60, 86, 112, 138, 164, 190, 216, 242, 268, 294, 320, 346, 372, 398, 424, 450 };
 
-const int num_color = 5;
+const int num_color = 6;
 const string color_pathes[] = {"gray.png", "red.png", "pink.png", "green.png", "orange.png", "cyan.png", "brown.png"};
 
 const int none = 0;
@@ -34,10 +34,13 @@ const int brown = 7;
 int ghHandle[num_color + 2];
 int ghHaikei;
 int ghWaku;
+int ghGameover;
 
 int pileBall[num_width][num_height]; // 積まれている玉の色
 int lastBall[num_width][num_height] = { -1 }; // 最後の表示したボール
 int score = 0;
+
+bool gameOver = false;
 
 void print(int message) {
     DrawFormatString(0, 0, GetColor(255, 0, 255), "%d", message);
@@ -700,19 +703,44 @@ void makeGrayBalls() {
     }
 }
 
+void endGame() {
+    resetScreen();
+
+    DrawGraph(0, 80, ghGameover, FALSE);
+}
+
+bool endJudge() {
+    for (int S = 0; S < num_width; S++) {
+        for (int V = 0; V < 6; V++) {
+            if (pileBall[S][V] != none) return true;
+        }
+    }
+    return false;
+}
+
 void update() {
-    // 時間をカウント
-    timeCount++;
-    timeCount %= div_speed;
-
-    // 画面に描かれているものをすべて消す
-    //moveBall();
-    move_3Balls();
-
     
 
-    // 描画
-    drawBalls();
+    if (!gameOver) {
+        // 時間をカウント
+        timeCount++;
+        timeCount %= div_speed;
+
+        // 画面に描かれているものをすべて消す
+        //moveBall();
+        move_3Balls();
+
+        // 描画
+        drawBalls();
+
+        // 終了判定
+        gameOver = endJudge();
+    }
+    else {
+        endGame();
+    }
+
+    // ゲームオーバーか判定
 
 
     // 裏画面の内容を表画面に反映させる
@@ -728,6 +756,7 @@ void openPng() {
     }
     ghHaikei = LoadGraph("haikei.png");
     ghWaku = LoadGraph("waku.png");
+    ghGameover = LoadGraph("gameover.png");
 }
 
 void startGame() {
@@ -753,6 +782,7 @@ void test() {
     openPng();
     makeScreen();
     makeGrayBalls(); // そこに灰色の玉を敷き詰める
+    /*
     for (int i = 0; i < 5; i++) {
         pileBall[1 + i * 2][num_height - 2] = red;
     }
@@ -762,8 +792,13 @@ void test() {
     for (int i = 0; i < 2; i++) {
         pileBall[1 + i * 2][num_height - 4] = green;
     }
+    */
     
-    
+    for (int i = 0; i < num_width; i += 2) {
+        for (int j = 6; j < num_height - 1; j++) {
+            pileBall[i][j] = (i + j) % num_color;
+        }
+    }
 
     drawBalls(true);
     //appearBalls(0); // いづれは3個の玉が出現、今は一個
