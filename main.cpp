@@ -32,6 +32,8 @@ const int cyan = 6;
 const int brown = 7;
 
 int ghHandle[num_color + 2];
+int ghHaikei;
+int ghWaku;
 
 int pileBall[num_width][num_height]; // 積まれている玉の色
 int lastBall[num_width][num_height] = { -1 }; // 最後の表示したボール
@@ -161,6 +163,10 @@ void draw_3Balls() {
 
 void drawBalls(bool sleep = false) {
     resetScreen();
+
+    DrawGraph(0, 41, ghHaikei, FALSE);
+    DrawGraph(0, 41, ghWaku, TRUE);
+
     for (int i = 0; i < num_width; i++) {
         for (int j = 0; j < num_height; j++) {
 
@@ -703,10 +709,11 @@ void update() {
     //moveBall();
     move_3Balls();
 
+    
+
     // 描画
     drawBalls();
 
-    
 
     // 裏画面の内容を表画面に反映させる
     ScreenFlip();
@@ -719,6 +726,8 @@ void openPng() {
     for (int i = 0; i <= num_color; i++) {
         ghHandle[i+1] = LoadGraph(color_pathes[i].c_str());
     }
+    ghHaikei = LoadGraph("haikei.png");
+    ghWaku = LoadGraph("waku.png");
 }
 
 void startGame() {

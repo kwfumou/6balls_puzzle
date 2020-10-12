@@ -1,12 +1,12 @@
 ﻿  main.cpp
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(610,81): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(610,81): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(611,93): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(611,93): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(612,54): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(612,54): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(615,77): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(615,77): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(616,89): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
-C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(616,89): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(616,81): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(616,81): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(617,93): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(617,93): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(618,54): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(618,54): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(621,77): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(621,77): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(622,89): warning C4805: '|=': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
+C:\Users\kwfumou6209\source\repos\6balls_puzzle\6balls_puzzle\main.cpp(622,89): warning C4805: '|': 演算中の 'bool' 型と 'int' 型の混用は安全ではありません
   6balls_puzzle.vcxproj -> C:\Users\kwfumou6209\source\repos\6balls_puzzle\Debug\6balls_puzzle.exe
